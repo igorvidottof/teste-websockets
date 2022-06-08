@@ -1,46 +1,33 @@
-const express = require('express')
-const app = express()
 
-app.use(express.static("public"))
-
-const http = require('http').Server(app)
-const serverSocket = require('socket.io')(http)
+const WebSocket = require('ws');
 
 const porta = process.env.PORT || 8000
 
-const host = process.env.HEROKU_APP_NAME ? `https://${process.env.HEROKU_APP_NAME}.herokuapp.com` : "http://localhost"
 
-http.listen(porta, function () {
-    const portaStr = porta === 80 ? '' : ':' + porta
+const wsServer = new WebSocket.Server({
+    port: porta
+});
 
-    if (process.env.HEROKU_APP_NAME)
-        console.log('Servidor iniciado. Abra o navegador em ' + host)
-    else console.log('Servidor iniciado. Abra o navegador em ' + host + portaStr)
-})
+wsServer.on('connection', function (socket) {
+    // Some feedback on the console
+    console.log("A client just connected");
 
-app.get('/', function (requisicao, resposta) {
-    resposta.sendFile(__dirname + '/index.html')
-})
-
-
-serverSocket.on('connect', function (socket) {
-    socket.on('login', function (nickname) {
-        socket.nickname = nickname
-        const msg = 'Hello World!!! ' + nickname + ' conectou'
-        console.log(msg)
-        serverSocket.emit('mensagem', msg)
-    })
-
-    socket.on('disconnect', function () {
-        console.log('Cliente desconectado: ' + socket.nickname)
-    })
-
+    // Attach some behavior to the incoming socket
     socket.on('mensagem', function (msg) {
-        serverSocket.emit('mensagem', `${socket.nickname} diz: ${msg}`)
+        console.log("Mensagem do cliente: " + msg);
+        // socket.send("Take this back: " + msg);
+
+        // Broadcast that message to all connected clients
+        wsServer.clients.forEach(function (client) {
+            client.send("Alguém disse: " + msg);
+        });
+
+    });
+
+    socket.on('close', function () {
+        console.log('Client disconnected');
     })
 
-    socket.on('status', function (msg) {
-        console.log(msg)
-        socket.broadcast.emit('status', msg)
-    })
-})
+});
+
+console.log((new Date()) + " Server is listening on port " + porta);
