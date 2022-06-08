@@ -8,9 +8,14 @@ const io = require('socket.io')(http, {
 io.on('connection', (socket) => {
     console.log('a user connected');
 
+    io.emit('connection-ok', 'Hello World!');
+
     socket.on('message', (message) => {
         console.log(message);
-        io.emit('message', `${socket.id.substr(0, 2)} said ${message}`);
+        const el = document.createElement('li');
+        el.innerHTML = message;
+        document.querySelector('ul').appendChild(el);
+        io.emit('Recebi a mensagem!!!');
     });
 });
 
